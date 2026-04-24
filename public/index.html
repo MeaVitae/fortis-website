@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fortis Key Secured</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            background: radial-gradient(ellipse at 50% 40%, #1a1a30 0%, #07070f 70%);
+        }
+
+        #hex-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+        }
+
+        .overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .line {
+            display: block;
+            font-family: 'Arial Black', 'Impact', Arial, sans-serif;
+            font-weight: 900;
+            color: #ffffff;
+            white-space: nowrap;
+            line-height: 1;
+            text-shadow:
+                0 0 60px rgba(255, 165, 20, 0.5),
+                0 0 20px rgba(255, 165, 20, 0.25),
+                0 2px 10px rgba(0, 0, 0, 0.9);
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="hex-canvas"></canvas>
+    <div class="overlay">
+        <span class="line" id="fortis">FORTIS</span>
+        <span class="line" id="key-secured">KEY SECURED</span>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('hex-canvas');
+        const ctx = canvas.getContext('2d');
+        const fortisEl = document.getElementById('fortis');
+        const keySecuredEl = document.getElementById('key-secured');
+
+        function hexPath(cx, cy, r) {
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const a = -Math.PI / 2 + (Math.PI / 3) * i;
+                const x = cx + r * Math.cos(a);
+                const y = cy + r * Math.sin(a);
+                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+        }
+
+        function drawGrid() {
+            const W = canvas.width = window.innerWidth;
+            const H = canvas.height = window.innerHeight;
+            const r = 34;
+            const colW = r * Math.sqrt(3);
+            const rowH = r * 1.5;
+
+            ctx.clearRect(0, 0, W, H);
+            ctx.strokeStyle = 'rgba(255, 165, 20, 0.2)';
+            ctx.lineWidth = 1;
+
+            const cols = Math.ceil(W / colW) + 2;
+            const rows = Math.ceil(H / rowH) + 2;
+
+            for (let row = -1; row < rows; row++) {
+                for (let col = -1; col < cols; col++) {
+                    const cx = col * colW + (row % 2 !== 0 ? colW / 2 : 0);
+                    const cy = row * rowH;
+                    hexPath(cx, cy, r);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function fitSize(el, targetPx) {
+            let lo = 1, hi = 900;
+            while (hi - lo > 1) {
+                const mid = Math.floor((lo + hi) / 2);
+                el.style.fontSize = mid + 'px';
+                if (el.getBoundingClientRect().width <= targetPx) lo = mid;
+                else hi = mid;
+            }
+            el.style.fontSize = lo + 'px';
+            return el.getBoundingClientRect().width;
+        }
+
+        function fitText() {
+            const target = window.innerWidth * 0.30;
+            const fortisW = fitSize(fortisEl, target);
+            fitSize(keySecuredEl, fortisW);
+        }
+
+        function render() {
+            drawGrid();
+            fitText();
+        }
+
+        window.addEventListener('resize', render);
+        render();
+    </script>
+</body>
+
+</html>

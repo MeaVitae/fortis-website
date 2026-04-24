@@ -1,15 +1,7 @@
 {
 	"name": "fortis-website",
 	"compatibility_date": "2025-10-08",
-	"compatibility_flags": [
-		"nodejs_compat"
-	],
 	"assets": {
-		"directory": "./dist",
-		"binding": "ASSETS"
-	},
-	"observability": {
-		"enabled": true
-	},
-	"upload_source_maps": true
+		"directory": "./public"
+	}
 }
