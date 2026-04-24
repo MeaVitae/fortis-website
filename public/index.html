@@ -60,8 +60,8 @@
 <body>
     <canvas id="hex-canvas"></canvas>
     <div class="overlay">
-        <span class="line" id="fortis">FORTIS</span>
-        <span class="line" id="key-secured">KEY SECURED</span>
+        <span class="line" id="fortis" data-text="FORTIS">FORTIS</span>
+        <span class="line" id="key-secured" data-text="KEY SECURED">KEY SECURED</span>
     </div>
 
     <script>
@@ -106,15 +106,26 @@
         }
 
         function fitSize(el, targetPx) {
+            // Measure against original text so cipher spans don't skew font sizing
+            const text = el.dataset.text || el.textContent;
+            const probe = document.createElement('span');
+            probe.className = 'line';
+            probe.style.cssText = 'visibility:hidden;position:absolute;top:-9999px;white-space:nowrap;pointer-events:none;';
+            probe.textContent = text;
+            document.body.appendChild(probe);
             let lo = 1, hi = 900;
             while (hi - lo > 1) {
-                const mid = Math.floor((lo + hi) / 2);
+                const mid = (lo + hi) >> 1;
+                probe.style.fontSize = mid + 'px';
                 el.style.fontSize = mid + 'px';
-                if (el.getBoundingClientRect().width <= targetPx) lo = mid;
+                if (probe.getBoundingClientRect().width <= targetPx) lo = mid;
                 else hi = mid;
             }
             el.style.fontSize = lo + 'px';
-            return el.getBoundingClientRect().width;
+            probe.style.fontSize = lo + 'px';
+            const w = probe.getBoundingClientRect().width;
+            document.body.removeChild(probe);
+            return w;
         }
 
         function fitText() {
@@ -130,6 +141,81 @@
 
         window.addEventListener('resize', render);
         render();
+
+        // ── Leet cipher animation ────────────────────────────────────────────────
+        (function cipherEffect() {
+            // Leet substitution map: leet = settled cipher form, noise = shuffle pool
+            const CHARS = {
+                F: { leet: 'F', noise: ['ƒ', 'φ', 'F', '#', 'Ƒ', 'f'] },
+                O: { leet: '0', noise: ['0', 'Θ', 'Ø', 'θ', 'O', '°', 'ø'] },
+                R: { leet: 'R', noise: ['R', '®', 'ρ', 'Ʀ', 'r', '2'] },
+                T: { leet: '7', noise: ['7', '†', 'τ', '+', 'T', 't', '⊤'] },
+                I: { leet: '1', noise: ['1', '!', '|', 'ı', 'I', 'i'] },
+                S: { leet: '5', noise: ['5', '$', 'ς', 'ş', 'S', 's'] },
+                K: { leet: 'K', noise: ['K', 'κ', 'ĸ', 'k', 'ƙ'] },
+                E: { leet: '3', noise: ['3', '€', 'ε', 'ë', 'E', 'e'] },
+                Y: { leet: 'Y', noise: ['¥', 'γ', 'ψ', 'Y', 'y'] },
+                C: { leet: 'C', noise: ['C', '©', 'ç', '(', 'c', '<'] },
+                U: { leet: 'U', noise: ['U', 'υ', 'μ', 'ü', 'u'] },
+                D: { leet: 'D', noise: ['D', 'ð', '∂', 'δ', 'd'] },
+                ' ': { leet: '\u00a0', noise: ['\u00a0'] }
+            };
+
+            const rand = (a, b) => a + Math.random() * (b - a);
+            const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+            function buildSpans(el) {
+                const text = el.dataset.text || el.textContent.trim();
+                el.textContent = '';
+                el.style.display = 'inline-flex';
+                return Array.from(text, ch => {
+                    const d = CHARS[ch] ?? { leet: ch, noise: [ch] };
+                    const span = document.createElement('span');
+                    span.style.cssText = 'display:inline-block;text-align:center;';
+                    span.textContent = d.leet;
+                    el.appendChild(span);
+                    return { span, ch, d };
+                });
+            }
+
+            function animate({ span, ch, d }) {
+                // Static characters (space, no meaningful noise)
+                if (d.noise.length === 1) { span.textContent = d.leet; return; }
+
+                function scramble(frames, done) {
+                    if (frames <= 0) return done();
+                    span.textContent = pick(d.noise);
+                    setTimeout(() => scramble(frames - 1, done), rand(600, 1215));
+                }
+
+                function holdLeet() {
+                    span.textContent = d.leet;
+                    // Hold the cipher form, then briefly scramble
+                    setTimeout(() => {
+                        scramble(4 + Math.floor(rand(0, 9)), () => {
+                            if (Math.random() < 0.18) {
+                                // Briefly reveal the clear letter
+                                span.textContent = ch;
+                                setTimeout(
+                                    () => scramble(4 + Math.floor(rand(0, 9)), holdLeet),
+                                    rand(350, 1200)
+                                );
+                            } else {
+                                holdLeet();
+                            }
+                        });
+                    }, rand(900, 4200));
+                }
+
+                // Stagger start times so characters don't all fire at once
+                setTimeout(holdLeet, rand(0, 2000));
+            }
+
+            [
+                ...buildSpans(document.getElementById('fortis')),
+                ...buildSpans(document.getElementById('key-secured'))
+            ].forEach(animate);
+        }());
     </script>
 </body>
 
